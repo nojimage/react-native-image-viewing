@@ -1,0 +1,45 @@
+/**
+ * Copyright (c) JOB TODAY S.A. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ */
+import { useEffect, useState } from "react";
+import { Image } from "react-native";
+import { createCache } from "../utils";
+const CACHE_SIZE = 50;
+const imageDimensionsCache = createCache(CACHE_SIZE);
+const useImageDimensions = (image) => {
+    const [dimensions, setDimensions] = useState(null);
+    const getImageDimensions = (image) => {
+        return new Promise(resolve => {
+            const imageDimensions = imageDimensionsCache.get(image.uri);
+            if (imageDimensions) {
+                resolve(imageDimensions);
+            }
+            else {
+                Image.getSize(image.uri, (width, height) => {
+                    imageDimensionsCache.set(image.uri, { width, height });
+                    resolve({ width, height });
+                }, error => {
+                    console.warn(error);
+                    resolve({ width: 0, height: 0 });
+                });
+            }
+        });
+    };
+    let isImageUnmounted = false;
+    useEffect(() => {
+        getImageDimensions(image).then(dimensions => {
+            if (!isImageUnmounted) {
+                setDimensions(dimensions);
+            }
+        });
+        return () => {
+            isImageUnmounted = true;
+        };
+    }, [image]);
+    return dimensions;
+};
+export default useImageDimensions;
